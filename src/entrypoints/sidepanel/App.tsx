@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from "react";
 import {
 	Button,
 	Card,
@@ -23,8 +24,17 @@ interface infoInter {
 const App: React.FC = () => {
 	const [info, setInfo] = useState<infoInter[]>([]);
 
-	// 获取本地存储的数据
-	const getInfo = async () => {
+	// 将 message/useMessage 提前并 memoize cusAlert
+	const [messageApi, contextHolder] = message.useMessage();
+	const cusAlert = useCallback(
+		(type: NoticeType | undefined, msg: string) => {
+			messageApi.open({ type, content: msg });
+		},
+		[messageApi],
+	);
+
+	// 获取本地存储的数据（memoized）
+	const getInfo = useCallback(async () => {
 		try {
 			const res = await storage.getItem<infoInter[]>("local:info");
 			if (!res) return;
@@ -32,54 +42,76 @@ const App: React.FC = () => {
 		} catch {
 			cusAlert("error", "获取存储数据出错");
 		}
-	};
+	}, [cusAlert]);
 
 	// 页面挂载时获取一次数据
 	useEffect(() => {
 		getInfo();
-	}, []);
+	}, [getInfo]);
 
 	// 处理弹框modal
 	const [title, setTitle] = useState("标题");
 	const [open, setOpen] = useState(false);
 	const [confirmLoading, setConfirmLoading] = useState(false);
-
-	// 弹出对话框，新增与编辑事件
-	const showModal = (title: string) => {
-		setTitle(title);
-		setOpen(true);
-	};
-
 	// 弹框内表单处理
 	const [form] = Form.useForm();
 
-	const handleSubmit = async (value: infoInter) => {
-		setConfirmLoading(true);
-		const info = await storage.getItem<infoInter[]>("local:info");
-		if (info) {
-			info.push(value);
-			await storage.setItem("local:info", info);
-		} else {
-			await storage.setItem("local:info", [value]);
+	const [infoToEdit, setInfoToEdit] = useState<infoInter | undefined>();
+
+	// 在 Modal 打开时设置表单值
+	useEffect(() => {
+		if (open && infoToEdit) {
+			form.setFieldsValue(infoToEdit);
+		} else if (open && !infoToEdit) {
+			form.resetFields();
 		}
+	}, [open, infoToEdit, form]);
+
+	// 弹出对话框，新增与编辑事件
+	const showModal = (title: "编辑" | "新增", info?: infoInter) => {
+		setTitle(title);
+		setOpen(true);
+		if (title === "编辑" && info) {
+			setInfoToEdit(info);
+		} else {
+			setInfoToEdit(undefined);
+		}
+	};
+
+	// 确认新增或修改信息按钮
+	const handleSubmit = async (value: infoInter) => {
+		console.log(value);
+		setConfirmLoading(true);
+		const storageInfo = await storage.getItem<infoInter[]>("local:info");
+
+		if (infoToEdit) {
+			// 编辑：替换原有数据
+			const updatedInfo = storageInfo?.map((item) =>
+				item.idCard === infoToEdit.idCard ? value : item,
+			) || [value];
+			await storage.setItem("local:info", updatedInfo);
+		} else {
+			// 新增：添加新数据
+			if (storageInfo) {
+				storageInfo.push(value);
+				await storage.setItem("local:info", storageInfo);
+			} else {
+				await storage.setItem("local:info", [value]);
+			}
+		}
+
 		getInfo();
 		setOpen(false);
 		setConfirmLoading(false);
 		cusAlert("success", "修改完成");
-		form.resetFields();
 	};
 
+	// 弹框取消按钮事件
 	const handleCancel = () => {
 		setOpen(false);
 	};
 
-	// 自定义alert样式
-	const [messageApi, contextHolder] = message.useMessage();
-	const cusAlert = (type: NoticeType | undefined, message: string) => {
-		messageApi.open({ type, content: message });
-	};
-
-	// 填写逻辑
+	// 填写逻辑(给主页面发信息，填充逻辑在主页面处理)
 	const handleFill = (person: (typeof info)[number]) => {
 		browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 			if (!tabs[0]?.id) {
@@ -128,6 +160,7 @@ const App: React.FC = () => {
 				confirmLoading={confirmLoading}
 				footer={false}
 				onCancel={handleCancel}
+				forceRender
 			>
 				<Form
 					form={form}
@@ -233,7 +266,7 @@ const App: React.FC = () => {
 												<Button
 													color="green"
 													variant="solid"
-													onClick={() => showModal("编辑")}
+													onClick={() => showModal("编辑", person)}
 												>
 													编辑
 												</Button>
