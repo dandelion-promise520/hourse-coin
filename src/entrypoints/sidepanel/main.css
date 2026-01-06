@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.center {
+	@apply flex justify-center items-center;
+}
+
+* {
+	@apply m-0 box-border;
+}
