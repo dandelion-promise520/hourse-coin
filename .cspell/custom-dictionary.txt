@@ -4,6 +4,7 @@ CRDT
 idcard
 mblph
 MBLPH
+orglevel
 Popconfirm
 realname
 sfzh
