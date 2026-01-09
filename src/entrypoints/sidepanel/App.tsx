@@ -148,16 +148,22 @@ const App: React.FC = () => {
 		[cusAlert],
 	);
 
-	// 主页面加载完成后执行一次填充
+	// 在初始化时注册监听器
 	useEffect(() => {
-		browser.runtime.onMessage.addListener(async (msg) => {
+		const handleMessage = async (msg: { action: string }) => {
 			if (msg.action === "pageLoaded") {
-				console.log("页面加载完成");
 				const res = await storage.getItem<infoInter[]>("local:info");
 				if (!res) return;
 				handleFill(res[0]);
 			}
-		});
+		};
+
+		browser.runtime.onMessage.addListener(handleMessage);
+
+		// 清理监听器
+		return () => {
+			browser.runtime.onMessage.removeListener(handleMessage);
+		};
 	}, [handleFill]);
 
 	// 删除事件
