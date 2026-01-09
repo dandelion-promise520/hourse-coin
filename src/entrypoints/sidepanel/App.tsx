@@ -13,6 +13,7 @@ import {
 } from "antd";
 import type { NoticeType } from "antd/es/message/interface";
 import { useCallback, useEffect, useState } from "react";
+import BtnGroup from "@/components/BtnGroup";
 import type { infoInter } from "@/types/useInfo";
 
 const App: React.FC = () => {
@@ -147,15 +148,17 @@ const App: React.FC = () => {
 		[cusAlert],
 	);
 
-	const defaultFill = useCallback(async () => {
-		const res = await storage.getItem<infoInter[]>("local:info");
-		if (!res) return;
-		handleFill(res[0]);
-	}, [handleFill]);
-
+	// 主页面加载完成后执行一次填充
 	useEffect(() => {
-		defaultFill();
-	}, [defaultFill]);
+		browser.runtime.onMessage.addListener(async (msg) => {
+			if (msg.action === "pageLoaded") {
+				console.log("页面加载完成");
+				const res = await storage.getItem<infoInter[]>("local:info");
+				if (!res) return;
+				handleFill(res[0]);
+			}
+		});
+	}, [handleFill]);
 
 	// 删除事件
 	const handleDelete = async (idCard: string) => {
@@ -279,7 +282,8 @@ const App: React.FC = () => {
 					<p className="text-white text-xl">预约马钞</p>
 					<Button onClick={() => showModal("新增")}>新增</Button>
 				</header>
-				<main className="flex flex-col p-4">
+				<main className="flex flex-col gap-4 p-4">
+					<BtnGroup />
 					<Row gutter={[8, 8]}>
 						{info.length !== 0 ? (
 							info.map((person) => (
