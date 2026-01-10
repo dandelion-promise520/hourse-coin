@@ -1,5 +1,11 @@
 // 扩展的选择器列表
-const selectors = {
+const selectors: {
+  name: string[];
+  idCard: string[];
+  phone: string[];
+  appointmentBranch: string[];
+  appointmentQuantity: string[];
+} = {
   name: [
     "#USR_NM", // 建行纪念币预约专用选择器
     "#txtName",
@@ -105,6 +111,42 @@ const selectors = {
     'input[aria-label*="数量" i]',
   ],
 };
+
+// 获取最近的input元素
+const getClosestInput = (element: Element | null): HTMLInputElement | null => {
+  if (!element) return null;
+
+  // 向上遍历父元素，直到找到一个input元素
+  while (element) {
+    const input = element.querySelector("input");
+    if (input) {
+      return input as HTMLInputElement; // 找到最近的input元素
+    }
+    // 如果当前元素没有input，则继续向上找
+    element = element.parentElement;
+  }
+
+  return null; // 如果没有找到input元素，则返回null
+};
+
+// 暴力获取姓名对应的输入框（遍历兄弟元素及其子元素）
+const getNameInput = () => {
+  // 获取包含姓名文本的元素并返回其最近的input元素
+  const nameElement = Array.from(document.querySelectorAll("*")).find(
+    (element) => {
+      return (
+        element.childNodes.length === 1 &&
+        element.firstChild?.nodeType === 3 &&
+        element.textContent.replace(/\s+/g, "").toLowerCase().includes("姓名")
+      );
+    }
+  );
+
+  // 如果找到了nameElement，则获取离它最近的input元素
+  return nameElement ? getClosestInput(nameElement) : null;
+};
+
+console.log(getNameInput());
 
 // 处理下拉选择框
 function handleSelect(select: HTMLSelectElement, value: string) {
