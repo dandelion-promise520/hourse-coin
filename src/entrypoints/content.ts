@@ -130,14 +130,14 @@ const getClosestInput = (element: Element | null): HTMLInputElement | null => {
 };
 
 // 暴力获取姓名对应的输入框（遍历兄弟元素及其子元素）
-const getNameInput = () => {
+const getInput = (value: string) => {
   // 获取包含姓名文本的元素并返回其最近的input元素
   const nameElement = Array.from(document.querySelectorAll("*")).find(
     (element) => {
       return (
         element.childNodes.length === 1 &&
         element.firstChild?.nodeType === 3 &&
-        element.textContent.replace(/\s+/g, "").toLowerCase().includes("姓名")
+        element.textContent.replace(/\s+/g, "").toLowerCase().includes(value)
       );
     }
   );
@@ -145,8 +145,6 @@ const getNameInput = () => {
   // 如果找到了nameElement，则获取离它最近的input元素
   return nameElement ? getClosestInput(nameElement) : null;
 };
-
-console.log(getNameInput());
 
 // 处理下拉选择框
 function handleSelect(select: HTMLSelectElement, value: string) {
@@ -193,10 +191,11 @@ export default defineContentScript({
         // 使用 async/await 处理异步逻辑
         for (const field of Object.keys(selectors)) {
           const key = field as keyof typeof selectors;
-          // 遍历选择器
+          let matched = false;
+
+          // 遍历选择器，优先使用显式选择器匹配
           for (const selector of selectors[key]) {
             const element = document.querySelector(selector);
-            // console.log(element);
             if (element) {
               const value = data[field === "name" ? "userName" : field];
 
@@ -212,7 +211,34 @@ export default defineContentScript({
                   element.dispatchEvent(event);
                 });
               }
+
+              matched = true;
               break; // 如果找到一个匹配的元素就跳出内层循环
+            }
+          }
+
+          // 如果没有通过选择器匹配到元素，则尝试使用 getInput 回退（基于标签文本）
+          if (!matched) {
+            const fallbackLabels: Record<string, string> = {
+              name: "姓名",
+              idCard: "证件号码",
+              phone: "手机号码",
+              // appointmentBranch: "网点",
+              // appointmentQuantity: "数量",
+            };
+
+            const label = fallbackLabels[key];
+            if (label) {
+              const input = getInput(label);
+              if (input) {
+                const value = data[field === "name" ? "userName" : field];
+                console.log(input);
+                input.value = value;
+                ["input", "change", "blur", "focus"].forEach((eventType) => {
+                  const event = new Event(eventType, { bubbles: true });
+                  input.dispatchEvent(event);
+                });
+              }
             }
           }
         }
