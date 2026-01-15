@@ -8,4 +8,5 @@ orglevel
 Popconfirm
 realname
 sfzh
+sidepanel
 sjhm
