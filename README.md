@@ -12,7 +12,8 @@
 
 ## 界面预览
 
-![界面预览](https://github.com/user-attachments/assets/69d5b00b-b2ee-4e2b-939c-7830c4df698b)
+<img width="647" height="628" alt="image" src="https://github.com/user-attachments/assets/78e3bc0b-24fd-4a77-8f34-817b916329d2" />
+
 
 ## 安装使用
 
